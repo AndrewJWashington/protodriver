@@ -11,9 +11,9 @@ import os
 
 
 #config
-GAME_TYPE = "Train" # "Train", "Run"  todo - move to file argument
+GAME_TYPE = "Run" # "Train", "Run"  todo - move to file argument
 COUNT_DOWN = True
-MAX_FRAMES = 400 # none for infinite runtime
+MAX_FRAMES = 40 # none for infinite runtime, roughly 10 fps for training and 1.5 fps for running
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1" 
                           #bot left  mid left   top left    top right   mid right   bot right
 ROI_VERTICES = [np.array([[10, 500], [10, 250], [399, 200], [401, 200], [800, 250], [800, 500]])]

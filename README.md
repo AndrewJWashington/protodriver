@@ -49,7 +49,14 @@ Years ago, I watched Sentdex [create a self-driving GTA 5 bot](https://www.youtu
 
 ## Resources:
 * [Sentdex's GTA 5 bot playlist](https://www.youtube.com/playlist?list=PLQVvvaa0QuDeETZEOy4VdocT7TOjfSA8a)
+* Create a virtual environment: https://docs.python.org/3/library/venv.html
+* Pillow installation and documnentation: https://pillow.readthedocs.io/en/stable/installation.html
+* OpenCV installation: https://pypi.org/project/opencv-python/
+* OpenCV tutorials: https://docs.opencv.org/3.4/d7/da8/tutorial_table_of_content_imgproc.html
+* PyDirectInput installation and documnentation: https://pypi.org/project/PyDirectInput/
+* keyboard (python package) installation and documnentation: https://pypi.org/project/keyboard/
+* Keras MNIST example: https://www.tensorflow.org/datasets/keras_example
+** It's usually easier to get started with a much simpler example and building out from there.
 * https://www.tensorflow.org/install/gpu
 ** ~~Who would have thought the actual documentation would be helpful?~~ Follow the steps _in order_ and make sure to read all the way through the bottom. It's easy to go to the Nvidia documentation and forget to come back to the TF documentation.
-* https://docs.nvidia.com/deeplearning/sdk/cudnn-support-matrix/index.html
-** Support matrix for Nvidia software
+* Support matrix for Nvidia software: https://docs.nvidia.com/deeplearning/sdk/cudnn-support-matrix/index.html
