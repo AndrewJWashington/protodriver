@@ -7,7 +7,7 @@ import os
 # config
 os.environ["CUDA_VISIBLE_DEVICES"] = "0" 
 batch_size = 15
-epochs = 2
+epochs = 10
     
 num_outputs = 4 # gas, left, brake, right
 input_shape = (300, 400, 1) # 400x300 grayscale
@@ -71,8 +71,8 @@ if __name__ == "__main__":
         layers.Conv2D(2, kernel_size=(30, 30), activation="relu"),
         layers.Flatten(),
         layers.Dropout(0.2),
-        layers.Dense(num_outputs, activation="relu"),
-        layers.Dense(num_outputs, activation="linear"),
+        layers.Dense(num_outputs, activation="sigmoid"),
+        layers.Dense(num_outputs, activation="sigmoid"),
     ])
     model.summary()
 
@@ -89,5 +89,5 @@ if __name__ == "__main__":
     print(f"Saved model to models/{model_filename}")
 
     print("Examples predictions:")
-    for prediction in model.predict_proba(x_test[::int(len(x_test)/10)]):
+    for prediction in model.predict(x_test[::int(len(x_test)/10)]):
         print(prediction)
