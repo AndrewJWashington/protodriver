@@ -5,17 +5,13 @@ import time
 import pyautogui
 import pydirectinput
 import keyboard
-import tensorflow as tf
-from tensorflow import keras
-import os
 from protodriver import utils
 
 
 #config
-#GAME_TYPE = "Run" # "Train", "Run"  todo - move to file argument
 COUNT_DOWN = True
-MAX_FRAMES = 20 # none for infinite runtime, roughly 10 fps for training and 1.5 fps for running
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1" 
+MAX_FRAMES = 1000 # none for infinite runtime, roughly 10 fps for training and 1.5 fps for running
+TRAINING_SESSION_ID = "session_3"
 
 # init
 frames_processed = 0
@@ -36,8 +32,8 @@ if __name__ == "__main__":
     last_time = time.time()
     if MAX_FRAMES is None:
         MAX_FRAMES = int("inf")
-    model = keras.models.load_model('models/basic_cnn')
-    model.summary()
+    screen_captures = []
+    labels = []
 
     # game loop
     while frames_processed < MAX_FRAMES and not user_exit:
@@ -46,29 +42,18 @@ if __name__ == "__main__":
         # grab screen
         screen = np.array(ImageGrab.grab(bbox=(0, 40, 800, 640)))
 
+        # get user input, then store as labelled data
+        user_input = utils.get_user_input()
+        labels.append(user_input[:4]) # don't need to record space
+        
+        if user_input[4]:  # space pressed
+            user_exit = True
+
         # process image and display resulting image
         processed_screen = utils.process_image(screen)
-        #screen_captures.append(processed_screen)
+        screen_captures.append(processed_screen)
         cv2.imshow('window', processed_screen)
 
-        user_input = utils.get_user_input()
-        #if user_input[5]:  # c pressed
-        #    user_exit = True
-        #elif user_input[4]:  # space pressed
-        #    user_pause = True
-
-        # need to rethink pausing - maybe one key to start/unpause and another pause
-        # this imght be a good time to reorganize project structure
-            
-        # get model prediction 
-        model_input = np.expand_dims(np.array(processed_screen), -1).reshape((1, 300, 400, 1))
-        #print(model_input.shape)
-        prediction = model.predict(model_input)[0]
-        print(prediction)
-
-        # send input
-        utils.send_input(prediction)
-        
         # some stuff to get opencv not to crash
         if(cv2.waitKey(25) & 0xFF == ord('q')):
             cv2.destroyAllWindows()
@@ -79,9 +64,14 @@ if __name__ == "__main__":
         last_time = time.time()
         frames_processed = frames_processed + 1
         print(f"Framerate: {fps:4.4} fps, ({frames_processed} / {MAX_FRAMES}) frames processed")    
-        
-    # feet off the pedals!
-    pydirectinput.keyUp('w')
-    pydirectinput.keyUp('s')
     
+    # save training input
+    filename = f'training_data/training_data_{TRAINING_SESSION_ID}.npy'
+    np.save(filename, screen_captures)
+    print(f"Saved {len(screen_captures)} screen captures of shape {screen_captures[0].shape} to {filename}")
+        
+    # save training labels
+    np.save(f'training_data/training_labels_{TRAINING_SESSION_ID}.npy', labels)
+    print(f"Saved {len(labels)} training labels of shape {labels[0].shape} to {filename}")
+
     print("completed successfully")
