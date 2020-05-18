@@ -11,7 +11,7 @@ from protodriver import utils
 #config
 COUNT_DOWN = True
 MAX_FRAMES = 1000 # none for infinite runtime, roughly 10 fps for training and 1.5 fps for running
-TRAINING_SESSION_ID = "session_3"
+TRAINING_SESSION_ID = "session_5"
 
 # init
 frames_processed = 0

@@ -68,7 +68,7 @@ if __name__ == "__main__":
     
     model = keras.Sequential([
         keras.Input(shape=input_shape),
-        layers.Conv2D(2, kernel_size=(30, 30), activation="relu"),
+        layers.Conv2D(1, kernel_size=(50, 50), activation="relu"),
         layers.Flatten(),
         layers.Dropout(0.2),
         layers.Dense(num_outputs, activation="sigmoid"),
