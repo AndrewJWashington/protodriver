@@ -13,7 +13,7 @@ from protodriver import utils
 
 #config
 COUNT_DOWN = True
-MAX_FRAMES = 20 # none for infinite runtime, roughly 10 fps for training and 1.5 fps for running
+MAX_FRAMES = 40 # none for infinite runtime, roughly 10 fps for training and 1.5 fps for running
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1" 
 
 # init

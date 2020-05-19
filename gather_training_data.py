@@ -10,7 +10,7 @@ from protodriver import utils
 
 #config
 COUNT_DOWN = True
-MAX_FRAMES = 100 # none for infinite runtime, roughly 10 fps for training and 1.5 fps for running
+MAX_FRAMES = 1000 # none for infinite runtime, roughly 10 fps for training and 1.5 fps for running
 MAX_SESSIONS = 20 # needs to match value in train_model.py - todo move to proper config file
 
 # init
