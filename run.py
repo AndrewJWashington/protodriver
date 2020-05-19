@@ -12,9 +12,8 @@ from protodriver import utils
 
 
 #config
-#GAME_TYPE = "Run" # "Train", "Run"  todo - move to file argument
 COUNT_DOWN = True
-MAX_FRAMES = 20 # none for infinite runtime, roughly 10 fps for training and 1.5 fps for running
+MAX_FRAMES = 40 # none for infinite runtime, roughly 10 fps for training and 1.5 fps for running
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1" 
 
 # init
@@ -61,10 +60,10 @@ if __name__ == "__main__":
         # this imght be a good time to reorganize project structure
             
         # get model prediction 
-        model_input = np.expand_dims(np.array(processed_screen), -1).reshape((1, 300, 400, 1))
-        #print(model_input.shape)
+        model_input = np.array(processed_screen).reshape((1, 75, 100, 3))
         prediction = model.predict(model_input)[0]
-        print(prediction)
+        prediction_str = " ".join([f"{p:2.2}" for p in prediction])
+        print(prediction_str)
 
         # send input
         utils.send_input(prediction)

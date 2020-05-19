@@ -13,7 +13,7 @@ import os
 ROI_VERTICES = [np.array([[10, 500], [10, 250], [399, 200], [401, 200], [800, 250], [800, 500]])]
                           #bot left  mid left   top left    top right   mid right   bot right
 LINE_COLOR = [255, 255, 255] # white
-LINE_WIDTH = 3 # pixels
+LINE_WIDTH = 3 # width in pixels for drawing lines on image
 
 def _region_of_interest(image, vertices):
     mask = np.zeros_like(image)
@@ -32,17 +32,20 @@ def _draw_lines(image, lines):
 
 
 def process_image(original_image):
-    processed_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
-    processed_image = _region_of_interest(processed_image, ROI_VERTICES)
+    #processed_image = original_image
+    processed_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
+    #processed_image = _region_of_interest(processed_image, ROI_VERTICES)
 
     # edge detection
-    processed_image = cv2.Canny(processed_image, threshold1=100, threshold2=200, edges=None, apertureSize=3)
+    #processed_image = cv2.Canny(processed_image, threshold1=100, threshold2=200, edges=None, apertureSize=3)
 
-    lines = cv2.HoughLinesP(image=processed_image, rho=1, theta=np.pi/180,
-                            threshold=60, lines=None, minLineLength=100, maxLineGap=5)
-    _draw_lines(processed_image, lines)
+    #lines = cv2.HoughLinesP(image=processed_image, rho=1, theta=np.pi/180,
+    #                        threshold=60, lines=None, minLineLength=100, maxLineGap=5)
+    #_draw_lines(processed_image, lines)
 
     processed_image = cv2.pyrDown(src=processed_image, dstsize=(400,300))
+    processed_image = cv2.pyrDown(src=processed_image, dstsize=(200,150))
+    processed_image = cv2.pyrDown(src=processed_image, dstsize=(100,75))
 
     return processed_image
 
