@@ -32,9 +32,9 @@ def _draw_lines(image, lines):
 
 
 def process_image(original_image):
-    processed_image = original_image
-    #processed_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
-    processed_image = _region_of_interest(processed_image, ROI_VERTICES)
+    #processed_image = original_image
+    processed_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
+    #processed_image = _region_of_interest(processed_image, ROI_VERTICES)
 
     # edge detection
     #processed_image = cv2.Canny(processed_image, threshold1=100, threshold2=200, edges=None, apertureSize=3)
