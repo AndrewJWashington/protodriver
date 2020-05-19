@@ -8,9 +8,10 @@ import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "0" 
 batch_size = 15
 epochs = 10
-    
+MAX_SESSIONS = 20
+
 num_outputs = 4 # gas, left, brake, right
-input_shape = (300, 400, 1) # 400x300 grayscale
+input_shape = (75, 100, 3) # 75, 100 rgb
 
 # big help
 # https://www.pyimagesearch.com/2018/06/04/keras-multiple-outputs-and-multiple-losses/
@@ -18,7 +19,10 @@ input_shape = (300, 400, 1) # 400x300 grayscale
 
 if __name__ == "__main__":
     # read training data
-    for session_number in range(1, 20):
+    for session_number in range(1, MAX_SESSIONS):
+        if session_number >= MAX_SESSIONS:
+            print(f"Warning: You might be exceeding {MAX_SESSIONS} training sessions. " +
+                  f"Raise MAX_SESSIONS if you want to train on more sessions.")
         TRAINING_SESSION_ID = "session_" + str(session_number)
         try:
             with open(f'training_data/training_data_{TRAINING_SESSION_ID}.npy', 'rb') as f:
@@ -42,7 +46,7 @@ if __name__ == "__main__":
         raise Exception("No training data in training_data/")
 
     # reshape x
-    images = np.expand_dims(images, -1)
+    #images = np.expand_dims(images, -1)
 
     # reshape y
     # convert class vectors to binary class matrices
@@ -68,7 +72,7 @@ if __name__ == "__main__":
     
     model = keras.Sequential([
         keras.Input(shape=input_shape),
-        layers.Conv2D(1, kernel_size=(50, 50), activation="relu"),
+        layers.Conv2D(3, kernel_size=(10, 10), activation="relu"),
         layers.Flatten(),
         layers.Dropout(0.2),
         layers.Dense(num_outputs, activation="sigmoid"),

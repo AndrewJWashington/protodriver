@@ -11,14 +11,30 @@ from protodriver import utils
 #config
 COUNT_DOWN = True
 MAX_FRAMES = 1000 # none for infinite runtime, roughly 10 fps for training and 1.5 fps for running
-TRAINING_SESSION_ID = "session_5"
+MAX_SESSIONS = 20 # needs to match value in train_model.py - todo move to proper config file
 
 # init
 frames_processed = 0
 
 
 if __name__ == "__main__":
-    print("running")
+    print("Running...")
+    
+    # read training data
+    print("Checking for existing training data...")
+    for session_number in range(1, MAX_SESSIONS):
+        if session_number >= MAX_SESSIONS:
+            print(f"Warning: You might be exceeding {MAX_SESSIONS} training sessions. " +
+                  f"Raise MAX_SESSIONS if you want to train on more sessions.")
+        TRAINING_SESSION_ID = "session_" + str(session_number)
+        try:
+            with open(f'training_data/training_data_{TRAINING_SESSION_ID}.npy', 'rb') as f:
+                pass
+        except FileNotFoundError:
+            num_sessions_loaded = session_number - 1
+            training_session_id = "session_" + str(num_sessions_loaded + 1)
+            print(f"Found {num_sessions_loaded} files of training data")
+            break
 
     # countdown
     if COUNT_DOWN:
@@ -66,12 +82,12 @@ if __name__ == "__main__":
         print(f"Framerate: {fps:4.4} fps, ({frames_processed} / {MAX_FRAMES}) frames processed")    
     
     # save training input
-    filename = f'training_data/training_data_{TRAINING_SESSION_ID}.npy'
+    filename = f'training_data/training_data_{training_session_id}.npy'
     np.save(filename, screen_captures)
     print(f"Saved {len(screen_captures)} screen captures of shape {screen_captures[0].shape} to {filename}")
         
     # save training labels
-    np.save(f'training_data/training_labels_{TRAINING_SESSION_ID}.npy', labels)
+    np.save(f'training_data/training_labels_{training_session_id}.npy', labels)
     print(f"Saved {len(labels)} training labels of shape {labels[0].shape} to {filename}")
 
     print("completed successfully")
