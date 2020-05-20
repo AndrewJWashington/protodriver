@@ -14,10 +14,7 @@ from protodriver import utils
 #config
 COUNT_DOWN = True
 MAX_FRAMES = 40 # none for infinite runtime, roughly 10 fps for training and 1.5 fps for running
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1" 
-
-# init
-frames_processed = 0
+os.environ["CUDA_VISIBLE_DEVICES"] = "0" 
 
 
 if __name__ == "__main__":
@@ -30,8 +27,8 @@ if __name__ == "__main__":
             time.sleep(0.5)
 
     # init
+    frames_processed = 0
     user_exit = False
-    user_pause = True
     last_time = time.time()
     if MAX_FRAMES is None:
         MAX_FRAMES = int("inf")
@@ -47,17 +44,11 @@ if __name__ == "__main__":
 
         # process image and display resulting image
         processed_screen = utils.process_image(screen)
-        #screen_captures.append(processed_screen)
         cv2.imshow('window', processed_screen)
 
         user_input = utils.get_user_input()
-        #if user_input[5]:  # c pressed
-        #    user_exit = True
-        #elif user_input[4]:  # space pressed
-        #    user_pause = True
-
-        # need to rethink pausing - maybe one key to start/unpause and another pause
-        # this imght be a good time to reorganize project structure
+        if user_input[4]:  # space pressed
+            user_exit = True
             
         # get model prediction 
         model_input = np.array(processed_screen).reshape((1, 75, 100, 3))
