@@ -1,19 +1,12 @@
 # protodriver
 Protodriver is an autonomous driver trained on Grid Autosport.  
 
-## General information
-* Does it work? Yes.  
-* Will it work for other games? Yes, there's nothing specific to Grid Autosport in the code.  
-* Will it work on your system? Maybe. Here's my setup for reference:
-  * My system hardware is described on [PC Part Picker](https://pcpartpicker.com/list/bjXFyk).  
-  * My system software is:
-    * Python 3.8.3rc1
-    * tensorflow 2.2
-    * CUDA 10.1
-    * Python packages described in requirements.txt
+This is a weekend project by Andrew Washington. It's far from scalable, but it's a working project. Feel free to clone/fork as you wish (in accordance with MIT license) and let me know if you have any questions. You can message me at AndrewJWashington on GitHub or just comment on the repo.  
+
+
 
   
-This is a weeekend project by Andrew Washington. It's far from scalable, but it's a working project. Feel free to clone/fork as you wish (in accordance with MIT license) and let me know if you have any questions. You can message me at AndrewJWashington on GitHub or just comment on the repo.  
+
 
 ## The Journey
 Years ago, I watched Sentdex [create a self-driving GTA 5 bot](https://www.youtube.com/playlist?list=PLQVvvaa0QuDeETZEOy4VdocT7TOjfSA8a) on YouTube and it was the coolest thing I could imagine. At the time, my python skills were not at the level to implement sucha project. However, recently I found the video again and thought "Hey, I can do that". After all, I now have a degree in Machine Learning and a couple years of experience as a Data Scientist working with python. Plus, the entire software stack I'm using has become much more user-friendly since I first watched those videos years ago.  
@@ -34,18 +27,45 @@ Years ago, I watched Sentdex [create a self-driving GTA 5 bot](https://www.youtu
 * Python keyboard control (pyautogui and pydirectinput)
 * Python/Windows user input (keyboard)
 
-### Results
-* The AI drives mostly just runs into walls. Everything up to the present has been focused on getting something running. Now that that's done, it's time to play with different deep learning and image processing techniques.
+### Log
+* May 17, 2020: 
+ * The AI drives but mostly just runs into walls. It seems to almost always go straight. Everything up to the present has been focused on getting something running. Now that that's done, it's time to play with different deep learning and image processing techniques.
+ * Follow-up: Realized the car was only inputting one key at a time, which isn't ideal, since racing drivers often use multiple inputs at the same time (e.g. trailbraking). This was fixed by changing the final dense layer's activation function from softmax to sigmoid.
+* May 18, 2020: 
+ * Did some initial cleanup of the codebase. 
+ * Noticed test predictions are all identical (great for doing donuts when it learns to to nothing but press the gas and turn left!). This was fixed by initializing the weights of the FC layers to small random values.
+ * Changed to an AlexNet-inspired architecture with more layers and maxpooling. Decreased many settings to get down to around 13,000 trainable parameters.
+ * Noticed car was having a hard time anytime it went off track or into a wall. Added a pause functionality so I could pause the training, go off track, then unpause it to "teach" the AI to go back on track.
+ * Switched from the RX7 at Brands Hatch to the Ford Focus at Washington's Hill Circuit.
+  * Switched from RWD to FWD so the AI wouldn't have to deal with throttle-on oversteer
+  * Swtiched tracks to somewhere with clear walls as boundaries. 
+ * Results: AI is clearly turning to correct course, but still can't make it more than a few meters before running into a wall or completely turning around.
+* May 19, 2020: 
+ * Sat and gathered around 20,000 training samples. Now the AI is clearly exhibiting intelligent behavior, typically making it at least a hundred meters before doing anything too crazy. This is about on par with what I'd expect given the experience with [donkeycar](https://github.com/autorope/donkeycar).
+ * Gathered training examples where I first get close to a wall as if I had crashed. Then unpaused training and backed up and restarted course. And the AI learned to do the same! Although there might be too many training examples like this because the AI sometimes backs up when unnecessary. Maybe we still just need more training data. Maybe it needs to be more balanced. Another option is to add a few LSTM layers to give a sense of memory. 
+ * I've started thinking about a reinforcement learning paradigm.
+  * The reward function: At first, I thought coming up with a reward function would be difficult since I want to use purely visual input. I don't want to pull anything from the game's internal code because I want this package to be game agnostic. One option is to look in specific places on the screen and read numbers that could serve as a reward function (e.g. look for speedometer, parse speed, then try to maximize average speed). That is one option, but there's another I like better. What if we try to maximize optic flow? In human vision, this is one thing that leads to a sense of speed. Better yet, it's already implemented in opencv (although only for a single point). We just have to use this to generate _global_ optical flow rate.
+   * OpenCV Optical Flow: https://docs.opencv.org/master/db/d7f/tutorial_js_lucas_kanade.html
+   * Optical flow in human vision:
+    * https://pdfs.semanticscholar.org/6667/bbb86d67c709f3740a72536f424c84e65496.pdf
+    * https://apps.dtic.mil/dtic/tr/fulltext/u2/a122275.pdf
+    * https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5735212/
+  * The model: I've looked around a little bit and it seems that keras-rl's NAF Agent might do the trick.
+   * Code: https://keras-rl.readthedocs.io/en/latest/agents/naf/
+   * Original paper: https://arxiv.org/abs/1603.00748
 
 ### Roadmap / potential improvements
 * Deep learning framework
-  * More layers
-  * Careful tuning for # params vs training observations
-  * Allow multiple outputs to be made at the same time
-* Code clean up
-* Pick an easier track
-* More training data
+  * Careful tuning for # params vs training observations (maybe not such a big deal according to [Ilya Sutskever interview](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=2ahUKEwjiyKzzucHpAhUYvp4KHfrWB2sQwqsBMAB6BAgLEAQ&url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3D13CZPWmke6A&usg=AOvVaw25mG2LHpq2cv6JhvqITHRa)).
 * Move from supervised to RL framework
+
+## System information
+* Tested system hardware is described on [PC Part Picker](https://pcpartpicker.com/list/bjXFyk).  
+* Tested system software is:
+    * Python 3.8.3rc1
+    * tensorflow 2.2
+    * CUDA 10.1
+    * Python packages described in requirements.txt
 
 ## Resources:
 * [Sentdex's GTA 5 bot playlist](https://www.youtube.com/playlist?list=PLQVvvaa0QuDeETZEOy4VdocT7TOjfSA8a)
