@@ -45,9 +45,10 @@ Years ago, I watched Sentdex [create a self-driving GTA 5 bot](https://www.youtu
     * https://pdfs.semanticscholar.org/6667/bbb86d67c709f3740a72536f424c84e65496.pdf
     * https://apps.dtic.mil/dtic/tr/fulltext/u2/a122275.pdf
     * https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5735212/
-  * The model: I've looked around a little bit and it seems that keras-rl's NAF Agent might do the trick.
-    * Code: https://keras-rl.readthedocs.io/en/latest/agents/naf/
-    * Original paper: https://arxiv.org/abs/1603.00748
+* May 23, 2020
+  * Moved to reinforcement learning (DQN, with much help from this [medium article](https://towardsdatascience.com/reinforcement-learning-w-keras-openai-dqns-1eed3a5338c) and the [original paper](https://arxiv.org/abs/1312.5602)). 
+  * The reward function is based on optical flow. The optical flow for every pixel is calculated. Then, the following values are added together: the average leftward flow on the left side of the image, the average rightward flow on the right side of the image, and all downward flow. The goal of this is to capture the visuals of moving forward through space, with higher optical flow being associated with a higher rate of travel. The idea is that maximizing the forward rate of travel
+  * Unfortunately, the AI has learned to "hack" the system. There is a very large overall optical flow that comes from slamming into a wall. The AI has learned to turn sideways to run into the wall, then reverse into the other wall, and repeat this process to maximize the jolt of optical flow it gets from the camera shake when hitting walls. Ideas to fix this are to smooth overall flow to avoid short jolts or tune gamma towards longer term goals.
 
 ### Roadmap / potential improvements
 * Deep learning framework

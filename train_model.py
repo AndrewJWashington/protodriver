@@ -70,15 +70,6 @@ if __name__ == "__main__":
 
     print("y_train examples:")
     print(y_train[:5])
-    
-    #model = keras.Sequential([
-    #    keras.Input(shape=input_shape),
-    #    layers.Conv2D(3, kernel_size=(10, 10), activation="relu"),
-    #    layers.Flatten(),
-    #    layers.Dropout(0.2),
-    #    layers.Dense(num_outputs, activation="sigmoid"),
-    #    layers.Dense(num_outputs, activation="sigmoid"),
-    #])
 
     # AlexNet
     # https://medium.com/datadriveninvestor/cnn-architecture-series-alexnet-with-implementation-part-ii-7f7afa2ac66a
