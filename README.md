@@ -26,11 +26,11 @@ Years ago, I watched Sentdex [create a self-driving GTA 5 bot](https://www.youtu
 * May 17, 2020: 
   * The AI drives but mostly just runs into walls. It seems to almost always go straight. Everything up to the present has been focused on getting something running. Now that that's done, it's time to play with different deep learning and image processing techniques.
   * Follow-up: Realized the car was only inputting one key at a time, which isn't ideal, since racing drivers often use multiple inputs at the same time (e.g. trailbraking). This was fixed by changing the final dense layer's activation function from softmax to sigmoid.
- * May 18, 2020: 
-   * Did some initial cleanup of the codebase. 
-   * Noticed test predictions are all identical (great for doing donuts when it learns to to nothing but press the gas and turn left!). This was fixed by initializing the weights of the FC layers to small random values.
-   * Changed to an AlexNet-inspired architecture with more layers and maxpooling. Decreased many settings to get down to around 13,000 trainable parameters.
-   * Noticed car was having a hard time anytime it went off track or into a wall. Added a pause functionality so I could pause the training, go off track, then unpause it to "teach" the AI to go back on track.
+* May 18, 2020: 
+  * Did some initial cleanup of the codebase. 
+  * Noticed test predictions are all identical (great for doing donuts when it learns to to nothing but press the gas and turn left!). This was fixed by initializing the weights of the FC layers to small random values.
+  * Changed to an AlexNet-inspired architecture with more layers and maxpooling. Decreased many settings to get down to around 13,000 trainable parameters.
+  * Noticed car was having a hard time anytime it went off track or into a wall. Added a pause functionality so I could pause the training, go off track, then unpause it to "teach" the AI to go back on track.
   * Switched from the RX7 at Brands Hatch to the Ford Focus at Washington's Hill Circuit.
     * Switched from RWD to FWD so the AI wouldn't have to deal with throttle-on oversteer
     * Swtiched tracks to somewhere with clear walls as boundaries. 
