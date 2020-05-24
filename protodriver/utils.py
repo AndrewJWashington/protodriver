@@ -50,8 +50,34 @@ def process_image(original_image):
     return processed_image
 
 
-def find_lanes():
-    pass
+def calculate_optical_flow(last_screen, next_screen, last_flow):
+    prvs = cv2.cvtColor(last_screen,cv2.COLOR_BGR2GRAY)
+    next_ = cv2.cvtColor(next_screen,cv2.COLOR_BGR2GRAY)
+
+    flow = cv2.calcOpticalFlowFarneback(prev=prvs, next=next_, flow=last_flow,
+                                        pyr_scale=0.5, levels=1, winsize=50,
+                                        iterations=3, poly_n=7, poly_sigma=1.5,
+                                        flags=0)
+    flow_x, flow_y = flow[...,0], flow[...,1]
+    
+    leftside_mask = np.zeros_like(prvs)
+    leftside_mask[:, :int(leftside_mask.shape[1]/2)] = 255
+    left_flow_in_left_direction = np.where(flow_x * leftside_mask < 0, flow_x, 0)
+
+    rightside_mask = np.zeros_like(prvs)
+    rightside_mask[:, int(leftside_mask.shape[1]/2):] = 255
+    right_flow_in_right_direction = np.where(flow_x * rightside_mask > 0, flow_x, 0)
+
+    flow_in_downward_direction = np.where(flow_y < 0, flow_y, 0)
+    total_flow = np.abs(flow_in_downward_direction.mean().mean()) + \
+                 np.abs(left_flow_in_left_direction.mean().mean()) + \
+                 np.abs(right_flow_in_right_direction.mean().mean())
+    return total_flow, flow
+
+
+def get_reward(optical_flow):
+    # here in case we want to add other variables in the future
+    return optical_flow
 
 
 def get_user_input():
@@ -86,6 +112,30 @@ def send_input(prediction):
         pydirectinput.keyUp('s')
         
     if prediction[3] > 0.4:
+        pydirectinput.keyDown('d')
+    else: 
+        pydirectinput.keyUp('d')
+    #print("input sent!")
+
+
+def send_input_single_key(prediction):
+    #print("sending input")
+    if prediction == 0:
+        pydirectinput.keyDown('w')
+    else: 
+        pydirectinput.keyUp('w')
+
+    if prediction == 1:
+        pydirectinput.keyDown('a')
+    else: 
+        pydirectinput.keyUp('a')
+        
+    if prediction == 2:
+        pydirectinput.keyDown('s')
+    else: 
+        pydirectinput.keyUp('s')
+        
+    if prediction == 3:
         pydirectinput.keyDown('d')
     else: 
         pydirectinput.keyUp('d')
