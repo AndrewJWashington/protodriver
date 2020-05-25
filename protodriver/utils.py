@@ -75,15 +75,10 @@ def calculate_optical_flow(last_screen, next_screen, last_flow):
     return total_flow, flow
 
 
-def get_reward(optical_flow):
-    # here in case we want to add other variables in the future
-    return optical_flow
-
-
 def get_user_input():
     """
     Returns np.array with boolean values for whether w, a, s, d, space are pressed.
-    indices: 0=w, 1=a, 2=s, 3=d, 4=space
+    indices: 0=w, 1=a, 2=s, 3=d, 4=space, 5=c
     """
 
     bool_list = [keyboard.is_pressed("w"), keyboard.is_pressed("a"),
@@ -140,3 +135,44 @@ def send_input_single_key(prediction):
     else: 
         pydirectinput.keyUp('d')
     #print("input sent!")
+
+
+def is_outlier(new_value, previous_values, outlier_constant=1.5):
+    """
+    Check if new_value is outlier wrt previous_values.
+
+    Parameters
+    ----------
+    new_value : floatlike, new observation to check whether outlier
+    previous_values : np.array of floatlikes, previous observations
+    outlier_constant : how far out of the IQR new_value must be. Defaults to 1.5
+
+    Returns
+    -------
+    bool True if outlier, False otherwise
+    """
+    upper_quartile = np.percentile(previous_values, 75)
+    lower_quartile = np.percentile(previous_values, 25)
+    iqr = (upper_quartile - lower_quartile) * outlier_constant
+
+    return new_value > upper_quartile + iqr or new_value < lower_quartile - iqr
+
+
+class Reward:
+    def __init__(self):
+        self.flow_values_seen = np.array([])
+        self.outlier_constant = 1.5
+        self.min_samples_to_check_for_outliers = 20
+        self.max_optical_flow = 2.8
+
+    def get_reward(self, optical_flow):
+        if optical_flow > self.max_optical_flow:
+            print('clipped optical flow')
+        # Check if it's an outlier. If it is, just return the median of the stored values.
+        if len(self.flow_values_seen) > self.min_samples_to_check_for_outliers and \
+                is_outlier(optical_flow, self.flow_values_seen, self.outlier_constant):
+            print('Skipped outlier flow value of', optical_flow)
+            return min(np.median(self.flow_values_seen), self.max_optical_flow)
+        else:
+            self.flow_values_seen = np.append(self.flow_values_seen, optical_flow)
+            return min(optical_flow, self.max_optical_flow)
