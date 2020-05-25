@@ -30,7 +30,7 @@ class DQN:
     def __init__(self, model_filename=None, target_model_filename=None):
         self.input_shape = (75, 100, 3)
         self.batch_input_shape = (-1, 75, 100, 3)      
-        self.num_actions = 4
+        self.num_actions = 8  # forward, forward left, left, ...
         
         self.memory = list()
         self.gamma = 0.85
@@ -122,6 +122,7 @@ class DQN:
         self.target_model.save(f'models/{target_model_filename}')
         print(f"Saved models to models/{model_filename} and models/{target_model_filename}")
 
+
 if __name__ == "__main__":
     print("running")
 
@@ -137,6 +138,7 @@ if __name__ == "__main__":
     last_time = time.time()
     if MAX_FRAMES is None:
         MAX_FRAMES = int("inf")
+    reward_obj = utils.Reward()
         
     if LOAD_MODEL:
         dqn_agent = DQN(MODEL_FILENAME, TARGET_MODEL_FILENAME)
@@ -168,7 +170,6 @@ if __name__ == "__main__":
         model_input = np.array(processed_screen).reshape((1, 75, 100, 3))
         prediction = dqn_agent.act(model_input)
         #prediction_str = " ".join([f"{p:2.2}" for p in prediction])
-        print(prediction)
 
         # send input
         utils.send_input_single_key(prediction)
@@ -182,11 +183,14 @@ if __name__ == "__main__":
         flow_scalar, last_flow = utils.calculate_optical_flow(last_processed_screen,
                                                               processed_screen,
                                                               last_flow)
-        reward = utils.get_reward(flow_scalar)
+        reward = reward_obj.get_reward(flow_scalar, prediction)
         dqn_agent.remember(last_processed_screen, prediction, reward, processed_screen, done)
         dqn_agent.replay()
         dqn_agent.target_train()
         last_processed_screen = processed_screen
+
+        print('Predicted:', prediction)
+        print(f'Reward: {reward:3.3} (flow: {flow_scalar:3.3})')
 
         # display framerate
         fps = 1 / (time.time() - last_time)

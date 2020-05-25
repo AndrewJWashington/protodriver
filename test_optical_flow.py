@@ -49,23 +49,23 @@ def demo_optical_flow(last_screen, next_screen, last_flow):
     hsv[...,2] = cv2.normalize(mag,None,0,255,cv2.NORM_MINMAX)
     return cv2.cvtColor(hsv,cv2.COLOR_HSV2RGB), flow
 
+if __name__ == "__main__":
+    for frames_processed in range(200):
+        # grab screen
+        screen = np.array(ImageGrab.grab(bbox=(0, 40, 800, 640)))
 
-for frames_processed in range(200):    
-    # grab screen
-    screen = np.array(ImageGrab.grab(bbox=(0, 40, 800, 640)))
+        # process image and display resulting image
+        processed_screen = screen #utils.process_image(screen)
 
-    # process image and display resulting image
-    processed_screen = screen #utils.process_image(screen)
-    
-    image_to_show, last_flow = demo_optical_flow(last_processed_screen, processed_screen, last_flow)
+        image_to_show, last_flow = demo_optical_flow(last_processed_screen, processed_screen, last_flow)
 
-    cv2.imshow('window', image_to_show)
+        cv2.imshow('window', image_to_show)
 
-    last_processed_screen = processed_screen
+        last_processed_screen = processed_screen
 
 
-    # some stuff to get opencv not to crash
-    if(cv2.waitKey(25) & 0xFF == ord('q')):
-        cv2.destroyAllWindows()
-        break
+        # some stuff to get opencv not to crash
+        if(cv2.waitKey(25) & 0xFF == ord('q')):
+            cv2.destroyAllWindows()
+            break
 
