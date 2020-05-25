@@ -114,27 +114,45 @@ def send_input(prediction):
 
 
 def send_input_single_key(prediction):
-    #print("sending input")
-    if prediction == 0:
-        pydirectinput.keyDown('w')
-    else: 
-        pydirectinput.keyUp('w')
+    """
 
-    if prediction == 1:
+    Parameters
+    ----------
+    prediction : int-like 0=forward, 1=forward and left, 2=left, ... and so on around the d-pad
+
+    Returns
+    -------
+    Doesn't return anything, just sends input
+    """
+    keys = ['w', 'a', 's', 'd']
+    if prediction == 0:  # forward
+        pydirectinput.keyDown('w')
+        [pydirectinput.keyUp(key) for key in keys if key != 'w']
+    elif prediction == 1:  # forward and left
+        pydirectinput.keyDown('w')
         pydirectinput.keyDown('a')
-    else: 
-        pydirectinput.keyUp('a')
-        
-    if prediction == 2:
+        [pydirectinput.keyUp(key) for key in keys if key not in ['w', 'a']]
+    elif prediction == 2:  # left
+        pydirectinput.keyDown('a')
+        [pydirectinput.keyUp(key) for key in keys if key != 'a']
+    elif prediction == 3:  # reverse and left
         pydirectinput.keyDown('s')
-    else: 
-        pydirectinput.keyUp('s')
-        
-    if prediction == 3:
+        pydirectinput.keyDown('a')
+        [pydirectinput.keyUp(key) for key in keys if key not in ['s', 'a']]
+    elif prediction == 4:  # reverse
+        pydirectinput.keyDown('s')
+        [pydirectinput.keyUp(key) for key in keys if key != 's']
+    elif prediction == 5:  # reverse and right
+        pydirectinput.keyDown('s')
         pydirectinput.keyDown('d')
-    else: 
-        pydirectinput.keyUp('d')
-    #print("input sent!")
+        [pydirectinput.keyUp(key) for key in keys if key not in ['s', 'd']]
+    elif prediction == 6:  # right
+        pydirectinput.keyDown('d')
+        [pydirectinput.keyUp(key) for key in keys if key != 'd']
+    elif prediction == 7:  # forward and left
+        pydirectinput.keyDown('w')
+        pydirectinput.keyDown('d')
+        [pydirectinput.keyUp(key) for key in keys if key not in ['w', 'd']]
 
 
 def is_outlier(new_value, previous_values, outlier_constant=1.5):
@@ -164,15 +182,27 @@ class Reward:
         self.outlier_constant = 1.5
         self.min_samples_to_check_for_outliers = 20
         self.max_optical_flow = 2.8
+        self.forward_bonus = 0.15
+        self.reverse_penalty = 0.3
 
-    def get_reward(self, optical_flow):
+    def get_reward(self, optical_flow, prediction):
+        reward = 0.0
         if optical_flow > self.max_optical_flow:
-            print('clipped optical flow')
+            print('clipping optical flow')
         # Check if it's an outlier. If it is, just return the median of the stored values.
         if len(self.flow_values_seen) > self.min_samples_to_check_for_outliers and \
                 is_outlier(optical_flow, self.flow_values_seen, self.outlier_constant):
             print('Skipped outlier flow value of', optical_flow)
-            return min(np.median(self.flow_values_seen), self.max_optical_flow)
+            reward =  min(np.median(self.flow_values_seen), self.max_optical_flow)
         else:
             self.flow_values_seen = np.append(self.flow_values_seen, optical_flow)
-            return min(optical_flow, self.max_optical_flow)
+            reward = min(optical_flow, self.max_optical_flow)
+
+        if prediction in (0, 1, 7):
+            print('bonus for going forward')
+            reward = reward + self.forward_bonus
+        elif prediction in (3, 4, 5):
+            print('penalty for going in reverse')
+            reward = reward  - self.reverse_penalty
+
+        return reward

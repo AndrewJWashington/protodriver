@@ -19,7 +19,7 @@ from protodriver import utils
 COUNT_DOWN = True
 MAX_FRAMES = 501 # none for infinite runtime, roughly 10 fps for training and 1.5 fps for running
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-LOAD_MODEL = False
+LOAD_MODEL = True
 MODEL_FILENAME = 'rl_model'
 TARGET_MODEL_FILENAME = 'rl_target_model'
 
@@ -30,7 +30,7 @@ class DQN:
     def __init__(self, model_filename=None, target_model_filename=None):
         self.input_shape = (75, 100, 3)
         self.batch_input_shape = (-1, 75, 100, 3)      
-        self.num_actions = 4
+        self.num_actions = 8  # forward, forward left, left, ...
         
         self.memory = list()
         self.gamma = 0.85
@@ -183,7 +183,7 @@ if __name__ == "__main__":
         flow_scalar, last_flow = utils.calculate_optical_flow(last_processed_screen,
                                                               processed_screen,
                                                               last_flow)
-        reward = reward_obj.get_reward(flow_scalar)
+        reward = reward_obj.get_reward(flow_scalar, prediction)
         dqn_agent.remember(last_processed_screen, prediction, reward, processed_screen, done)
         dqn_agent.replay()
         dqn_agent.target_train()
