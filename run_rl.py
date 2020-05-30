@@ -17,7 +17,8 @@ from protodriver import utils
 
 #config
 COUNT_DOWN = True
-MAX_FRAMES = 501 # none for infinite runtime, roughly 10 fps for training and 1.5 fps for running
+MAX_FRAMES = 10000  # none for infinite runtime, roughly 10 fps for training and 1.8 fps for running
+TRAINING_FREQUENCY_FRAMES = 40
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 LOAD_MODEL = True
 MODEL_FILENAME = 'rl_model'
@@ -25,7 +26,8 @@ TARGET_MODEL_FILENAME = 'rl_target_model'
 
 
 #todo - move class elsewhere
-# class adapted from https://towardsdatascience.com/reinforcement-learning-w-keras-openai-dqns-1eed3a5338c
+# class adapted from
+# https://towardsdatascience.com/reinforcement-learning-w-keras-openai-dqns-1eed3a5338c
 class DQN:
     def __init__(self, model_filename=None, target_model_filename=None):
         self.input_shape = (75, 100, 3)
@@ -34,9 +36,9 @@ class DQN:
         
         self.memory = list()
         self.gamma = 0.85
-        self.epsilon = 1.0
+        self.epsilon = 0.3
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
+        self.epsilon_decay = 0.9995
         self.learning_rate = 0.005
         self.tau = .125
 
@@ -98,8 +100,8 @@ class DQN:
             if done:
                 target[0][int(action)] = reward
             else:
-                prediction = self.target_model.predict(state.reshape(self.batch_input_shape))[0]
-                Q_future = max(prediction)
+                predictions = self.target_model.predict(state.reshape(self.batch_input_shape))[0]
+                Q_future = max(predictions)
                 #print('prediction', prediction)
                 #print('Q_future', Q_future)
                 #print('action', action)
@@ -136,6 +138,7 @@ if __name__ == "__main__":
     frames_processed = 0
     user_exit = False
     last_time = time.time()
+    last_process_step_time = time.time()
     if MAX_FRAMES is None:
         MAX_FRAMES = int("inf")
     reward_obj = utils.Reward()
@@ -154,13 +157,20 @@ if __name__ == "__main__":
     while frames_processed < MAX_FRAMES and not user_exit:
         done = False
         frame_number = frames_processed  # todo - make name of frame independent of how many processed
-        
+
+        #print(f'Time to get get back to beginning of loop: { time.time() - last_process_step_time}')
+        last_process_step_time = time.time()
+
         # grab screen
         screen = np.array(ImageGrab.grab(bbox=(0, 40, 800, 640)))
 
+        last_process_step_time = time.time()
         # process image and display resulting image
         processed_screen = utils.process_image(screen)
         cv2.imshow('window', processed_screen)
+
+        #print(f'Time to process and display image: { time.time() - last_process_step_time}')
+        last_process_step_time = time.time()
 
         user_input = utils.get_user_input()
         if user_input[4]:  # space pressed
@@ -170,27 +180,44 @@ if __name__ == "__main__":
         model_input = np.array(processed_screen).reshape((1, 75, 100, 3))
         prediction = dqn_agent.act(model_input)
         #prediction_str = " ".join([f"{p:2.2}" for p in prediction])
+        #print(f'Time to get model prediction: { time.time() - last_process_step_time}')
+        last_process_step_time = time.time()
 
         # send input
         utils.send_input_single_key(prediction)
+        #print(f'Time to get send input: { time.time() - last_process_step_time}')
+        last_process_step_time = time.time()
         
         # some stuff to get opencv not to crash
-        if(cv2.waitKey(25) & 0xFF == ord('q')):
+        if(cv2.waitKey(1) & 0xFF == ord('q')):
             cv2.destroyAllWindows()
             break
+
+        #print(f'Time to get opencv not to crash: { time.time() - last_process_step_time}')
+        last_process_step_time = time.time()
 
         # learn
         flow_scalar, last_flow = utils.calculate_optical_flow(last_processed_screen,
                                                               processed_screen,
                                                               last_flow)
+        #print(f'Time to get get flow: { time.time() - last_process_step_time}')
+        last_process_step_time = time.time()
+
         reward = reward_obj.get_reward(flow_scalar, prediction)
         dqn_agent.remember(last_processed_screen, prediction, reward, processed_screen, done)
-        dqn_agent.replay()
-        dqn_agent.target_train()
+        frame_before_last = last_processed_screen
         last_processed_screen = processed_screen
+
+        #print(f'Time to get get reward and remember: { time.time() - last_process_step_time}')
+        last_process_step_time = time.time()
 
         print('Predicted:', prediction)
         print(f'Reward: {reward:3.3} (flow: {flow_scalar:3.3})')
+
+        # only retrain target model every once in awhile
+        if frames_processed % TRAINING_FREQUENCY_FRAMES == 0:
+            dqn_agent.replay()
+            dqn_agent.target_train()
 
         # display framerate
         fps = 1 / (time.time() - last_time)

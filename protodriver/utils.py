@@ -92,25 +92,35 @@ def get_user_input():
 def send_input(prediction):
     #print("sending input")
     if prediction[0] > 0.4:
-        pydirectinput.keyDown('w')
+        pydirectinput.keyDown('w', _pause=False)
     else: 
-        pydirectinput.keyUp('w')
+        pydirectinput.keyUp('w', _pause=False)
 
     if prediction[1] > 0.4:
-        pydirectinput.keyDown('a')
+        pydirectinput.keyDown('a', _pause=False)
     else: 
-        pydirectinput.keyUp('a')
+        pydirectinput.keyUp('a', _pause=False)
         
     if prediction[2] > 0.4:
-        pydirectinput.keyDown('s')
+        pydirectinput.keyDown('s', _pause=False)
     else: 
-        pydirectinput.keyUp('s')
+        pydirectinput.keyUp('s', _pause=False)
         
     if prediction[3] > 0.4:
-        pydirectinput.keyDown('d')
+        pydirectinput.keyDown('d', _pause=False)
     else: 
-        pydirectinput.keyUp('d')
+        pydirectinput.keyUp('d', _pause=False)
     #print("input sent!")
+
+
+#def send_input_single_key(prediction):
+#    hexKeyCode = KEYBOARD_MAPPING[key]
+#    extra = ctypes.c_ulong(0)
+#    ii_ = Input_I()
+#    ii_.ki = KeyBdInput(0, hexKeyCode, 0x0008, 0, ctypes.pointer(extra))
+#    x = Input( ctypes.c_ulong(1), ii_)
+#   SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
+#    return
 
 
 def send_input_single_key(prediction):
@@ -126,33 +136,33 @@ def send_input_single_key(prediction):
     """
     keys = ['w', 'a', 's', 'd']
     if prediction == 0:  # forward
-        pydirectinput.keyDown('w')
-        [pydirectinput.keyUp(key) for key in keys if key != 'w']
+        pydirectinput.keyDown('w', _pause=False)
+        [pydirectinput.keyUp(key, _pause=False) for key in keys if key != 'w']
     elif prediction == 1:  # forward and left
-        pydirectinput.keyDown('w')
-        pydirectinput.keyDown('a')
-        [pydirectinput.keyUp(key) for key in keys if key not in ['w', 'a']]
+        pydirectinput.keyDown('w', _pause=False)
+        pydirectinput.keyDown('a', _pause=False)
+        [pydirectinput.keyUp(key, _pause=False) for key in keys if key not in ['w', 'a']]
     elif prediction == 2:  # left
-        pydirectinput.keyDown('a')
-        [pydirectinput.keyUp(key) for key in keys if key != 'a']
+        pydirectinput.keyDown('a', _pause=False)
+        [pydirectinput.keyUp(key, _pause=False) for key in keys if key != 'a']
     elif prediction == 3:  # reverse and left
-        pydirectinput.keyDown('s')
-        pydirectinput.keyDown('a')
-        [pydirectinput.keyUp(key) for key in keys if key not in ['s', 'a']]
+        pydirectinput.keyDown('s', _pause=False)
+        pydirectinput.keyDown('a', _pause=False)
+        [pydirectinput.keyUp(key, _pause=False) for key in keys if key not in ['s', 'a']]
     elif prediction == 4:  # reverse
-        pydirectinput.keyDown('s')
-        [pydirectinput.keyUp(key) for key in keys if key != 's']
+        pydirectinput.keyDown('s', _pause=False)
+        [pydirectinput.keyUp(key, _pause=False) for key in keys if key != 's']
     elif prediction == 5:  # reverse and right
-        pydirectinput.keyDown('s')
-        pydirectinput.keyDown('d')
-        [pydirectinput.keyUp(key) for key in keys if key not in ['s', 'd']]
+        pydirectinput.keyDown('s', _pause=False)
+        pydirectinput.keyDown('d', _pause=False)
+        [pydirectinput.keyUp(key, _pause=False) for key in keys if key not in ['s', 'd']]
     elif prediction == 6:  # right
-        pydirectinput.keyDown('d')
-        [pydirectinput.keyUp(key) for key in keys if key != 'd']
+        pydirectinput.keyDown('d', _pause=False)
+        [pydirectinput.keyUp(key, _pause=False) for key in keys if key != 'd']
     elif prediction == 7:  # forward and left
-        pydirectinput.keyDown('w')
-        pydirectinput.keyDown('d')
-        [pydirectinput.keyUp(key) for key in keys if key not in ['w', 'd']]
+        pydirectinput.keyDown('w', _pause=False)
+        pydirectinput.keyDown('d', _pause=False)
+        [pydirectinput.keyUp(key, _pause=False) for key in keys if key not in ['w', 'd']]
 
 
 def is_outlier(new_value, previous_values, outlier_constant=1.5):
@@ -193,7 +203,7 @@ class Reward:
         if len(self.flow_values_seen) > self.min_samples_to_check_for_outliers and \
                 is_outlier(optical_flow, self.flow_values_seen, self.outlier_constant):
             print('Skipped outlier flow value of', optical_flow)
-            reward =  min(np.median(self.flow_values_seen), self.max_optical_flow)
+            reward = min(np.median(self.flow_values_seen), self.max_optical_flow)
         else:
             self.flow_values_seen = np.append(self.flow_values_seen, optical_flow)
             reward = min(optical_flow, self.max_optical_flow)
