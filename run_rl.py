@@ -6,18 +6,15 @@ import cv2
 import time
 import pyautogui
 import pydirectinput
-import keyboard
-import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-#from collections import deque  # todo - switch back? otherwise will use extra memory
-
 from protodriver import utils
+from collections import deque
 
 
 #config
 COUNT_DOWN = True
-MAX_FRAMES = 10000  # none for infinite runtime, roughly 10 fps for training and 1.8 fps for running
+MAX_FRAMES = 100000  # none for infinite runtime, roughly 10 fps for training and 4 fps for running
 TRAINING_FREQUENCY_FRAMES = 40
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 LOAD_MODEL = True
@@ -33,12 +30,11 @@ class DQN:
         self.input_shape = (75, 100, 3)
         self.batch_input_shape = (-1, 75, 100, 3)      
         self.num_actions = 8  # forward, forward left, left, ...
-        
-        self.memory = list()
+        self.memory = deque(maxlen=9000)
         self.gamma = 0.85
-        self.epsilon = 0.3
-        self.epsilon_min = 0.01
-        self.epsilon_decay = 0.9995
+        self.epsilon = 0.60  # 0.95 early, 0.30 mid, .xx late?
+        self.epsilon_min = 0.02  # 0.05 early, 0.01 mid, 0.0001 late?
+        self.epsilon_decay = 0.99995  # 0.99 for early learning, 0.9995 for mid to later learning
         self.learning_rate = 0.005
         self.tau = .125
 
@@ -48,7 +44,7 @@ class DQN:
             self.model = keras.models.load_model(f'models/{model_filename}')
             self.model.summary()
         
-        if model_filename is None:
+        if target_model_filename is None:
             self.target_model = self.create_model()
         else:
             self.target_model = keras.models.load_model(f'models/{target_model_filename}')
@@ -56,16 +52,25 @@ class DQN:
 
     def create_model(self):
         model = keras.Sequential()
-        model.add(layers.Conv2D(filters=10, input_shape=self.input_shape,
-                         kernel_size=(15, 15), strides=(5, 5), padding="valid",
-                         activation = "relu"))
-        model.add(layers.MaxPool2D(pool_size=(3,3), strides=(2,2), padding="valid"))
-        model.add(layers.Conv2D(filters=10, kernel_size=(5,5), strides=(1,1), padding="same", activation = "relu"))
-        model.add(layers.MaxPool2D(pool_size=(3,3), strides=(2,2), padding="valid"))
+        model.add(layers.Conv2D(filters=24, input_shape=self.input_shape,
+                                kernel_size=(5, 5), strides=(2, 2), padding="valid",
+                                activation='relu'))
+        #  model.add(layers.MaxPool2D(pool_size=(3,3), strides=(2,2), padding="valid"))
+        model.add(layers.Conv2D(filters=32, kernel_size=(5, 5), strides=(2, 2),
+                                padding="valid", activation='relu'))
+        #  model.add(layers.MaxPool2D(pool_size=(3,3), strides=(2,2), padding="valid"))
+        model.add(layers.Conv2D(filters=64, kernel_size=(5, 5), strides=(2, 2),
+                                padding="valid", activation='relu'))
+        model.add(layers.Conv2D(filters=64, kernel_size=(3, 3), strides=(1, 1),
+                                padding="valid", activation='relu'))
+        model.add(layers.Conv2D(filters=64, kernel_size=(3, 3), strides=(1, 1),
+                                padding="valid", activation='relu'))
         model.add(layers.Flatten())
-        model.add(layers.Dense(units = 10, activation = "relu"))
+        model.add(layers.Dense(units=100, activation="relu"))
+        model.add(layers.Dropout(0.1))
+        model.add(layers.Dense(units=50, activation="relu"))
         model.add(layers.Dense(self.num_actions))  # output layer
-        model.compile(loss="mean_squared_error", optimizer="adam")
+        model.compile(loss="categorical_crossentropy", optimizer="adam")
         model.summary()
         return model
 
@@ -167,7 +172,7 @@ if __name__ == "__main__":
         last_process_step_time = time.time()
         # process image and display resulting image
         processed_screen = utils.process_image(screen)
-        cv2.imshow('window', processed_screen)
+        #cv2.imshow('window', processed_screen)
 
         #print(f'Time to process and display image: { time.time() - last_process_step_time}')
         last_process_step_time = time.time()
@@ -197,13 +202,15 @@ if __name__ == "__main__":
         last_process_step_time = time.time()
 
         # learn
-        flow_scalar, last_flow = utils.calculate_optical_flow(last_processed_screen,
-                                                              processed_screen,
-                                                              last_flow)
+        flow_scalar, last_flow = 0.0, 0.0  # not currently using flow for reward
+        #  flow_scalar, last_flow = utils.calculate_optical_flow(last_processed_screen,
+        #                                                      processed_screen,
+        #                                                      last_flow)
         #print(f'Time to get get flow: { time.time() - last_process_step_time}')
+        speed = utils.get_speed(screen)
         last_process_step_time = time.time()
 
-        reward = reward_obj.get_reward(flow_scalar, prediction)
+        reward = reward_obj.get_reward(flow_scalar, speed, prediction)
         dqn_agent.remember(last_processed_screen, prediction, reward, processed_screen, done)
         frame_before_last = last_processed_screen
         last_processed_screen = processed_screen
@@ -215,9 +222,12 @@ if __name__ == "__main__":
         print(f'Reward: {reward:3.3} (flow: {flow_scalar:3.3})')
 
         # only retrain target model every once in awhile
-        if frames_processed % TRAINING_FREQUENCY_FRAMES == 0:
+        if frames_processed % TRAINING_FREQUENCY_FRAMES == 0 and frames_processed > 0:
             dqn_agent.replay()
             dqn_agent.target_train()
+
+        if frames_processed % 50 == 0 and frames_processed > 0:
+            dqn_agent.save_models(MODEL_FILENAME, TARGET_MODEL_FILENAME)
 
         # display framerate
         fps = 1 / (time.time() - last_time)
@@ -225,8 +235,7 @@ if __name__ == "__main__":
         frames_processed = frames_processed + 1
         print(f"Framerate: {fps:4.4} fps, ({frames_processed} / {MAX_FRAMES}) frames processed")
 
-        if frames_processed % 50 == 0:
-            dqn_agent.save_models(MODEL_FILENAME, TARGET_MODEL_FILENAME)
+
         
     # feet off the pedals!
     pydirectinput.keyUp('w')
