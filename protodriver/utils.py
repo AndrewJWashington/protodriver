@@ -1,19 +1,20 @@
 import numpy as np
-from PIL import ImageGrab
 import cv2
-import time
 import pyautogui
 import pydirectinput
 import keyboard
-import tensorflow as tf
-from tensorflow import keras
-import os
+import pytesseract
+from collections import deque
+
 
 # config
 ROI_VERTICES = [np.array([[10, 500], [10, 250], [399, 200], [401, 200], [800, 250], [800, 500]])]
                           #bot left  mid left   top left    top right   mid right   bot right
 LINE_COLOR = [255, 255, 255] # white
-LINE_WIDTH = 3 # width in pixels for drawing lines on image
+LINE_WIDTH = 3  # width in pixels for drawing lines on image
+SPEED_LOCATION_ON_SCREEN = (600, 430, 705, 470)
+pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
+
 
 def _region_of_interest(image, vertices):
     mask = np.zeros_like(image)
@@ -113,16 +114,6 @@ def send_input(prediction):
     #print("input sent!")
 
 
-#def send_input_single_key(prediction):
-#    hexKeyCode = KEYBOARD_MAPPING[key]
-#    extra = ctypes.c_ulong(0)
-#    ii_ = Input_I()
-#    ii_.ki = KeyBdInput(0, hexKeyCode, 0x0008, 0, ctypes.pointer(extra))
-#    x = Input( ctypes.c_ulong(1), ii_)
-#   SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
-#    return
-
-
 def send_input_single_key(prediction):
     """
 
@@ -186,33 +177,51 @@ def is_outlier(new_value, previous_values, outlier_constant=1.5):
     return new_value > upper_quartile + iqr or new_value < lower_quartile - iqr
 
 
+def get_speed(screen):
+    _processed_screen = cv2.cvtColor(screen, cv2.COLOR_BGR2GRAY)
+    _processed_screen = _processed_screen[
+                        SPEED_LOCATION_ON_SCREEN[1]:SPEED_LOCATION_ON_SCREEN[3],
+                        SPEED_LOCATION_ON_SCREEN[0]:SPEED_LOCATION_ON_SCREEN[2]]
+    _, _processed_screen = cv2.threshold(_processed_screen, 220, 255, cv2.THRESH_BINARY)
+    #  cv2.imshow('window', _processed_screen)
+    _speed = pytesseract.image_to_string(_processed_screen, config='digits')
+
+    try:
+        _speed = int(_speed)
+    except ValueError as e:
+        _speed = -1
+
+    return _speed
+
+
+def _is_valid_speed(speed, speed_values_seen):
+    return isinstance(speed, int) and 0 <= speed < 200  # mph
+
+
 class Reward:
     def __init__(self):
-        self.flow_values_seen = np.array([])
+        #  self.flow_values_seen = np.array([])
+        self.speed_values_seen = deque(maxlen=3)
         self.outlier_constant = 1.5
         self.min_samples_to_check_for_outliers = 20
         self.max_optical_flow = 2.8
-        self.forward_bonus = 0.15
-        self.reverse_penalty = 0.3
+        self.forward_bonus = 4
+        self.reverse_penalty = None  # not yet implemented
+        self.brake_penalty = 2
 
-    def get_reward(self, optical_flow, prediction):
+    def get_reward(self, optical_flow, speed, prediction):
         reward = 0.0
-        if optical_flow > self.max_optical_flow:
-            print('clipping optical flow')
-        # Check if it's an outlier. If it is, just return the median of the stored values.
-        if len(self.flow_values_seen) > self.min_samples_to_check_for_outliers and \
-                is_outlier(optical_flow, self.flow_values_seen, self.outlier_constant):
-            print('Skipped outlier flow value of', optical_flow)
-            reward = min(np.median(self.flow_values_seen), self.max_optical_flow)
+        if _is_valid_speed(speed, self.speed_values_seen):
+            reward = float(speed)
+            self.speed_values_seen.append(speed)
         else:
-            self.flow_values_seen = np.append(self.flow_values_seen, optical_flow)
-            reward = min(optical_flow, self.max_optical_flow)
+            reward = float(np.mean(self.speed_values_seen))
 
-        if prediction in (0, 1, 7):
-            print('bonus for going forward')
+        if prediction in (0, 1, 7) and reward > 5:
             reward = reward + self.forward_bonus
         elif prediction in (3, 4, 5):
-            print('penalty for going in reverse')
-            reward = reward  - self.reverse_penalty
+            reward = reward - self.brake_penalty
+        #  todo - penalize more if in reverse. Can't just check for key because brake is same as reverse
+        #  instead we can look for an "R" with tesseract
 
         return reward
