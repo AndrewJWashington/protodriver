@@ -42,6 +42,8 @@ if __name__ == "__main__":
             print(count)
             time.sleep(0.5)
 
+    print("Starting capture...")
+
     # init
     user_paused = False
     last_time = time.time()
