@@ -11,8 +11,8 @@ batch_size = 50
 epochs = 20
 MAX_SESSIONS = 20
 
-num_outputs = 4 # gas, left, brake, right
-input_shape = (75, 100, 3) # 75, 100 rgb
+num_outputs = 4  # gas, left, brake, right
+input_shape = (75, 100, 3)  # 75x100 rgb
 
 # big help
 # https://www.pyimagesearch.com/2018/06/04/keras-multiple-outputs-and-multiple-losses/
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     # Convolutional layers
     model.add(layers.Conv2D(filters=20, input_shape=input_shape, kernel_size=(11,11), strides=(4,4), padding="valid", activation = "relu"))
     model.add(layers.MaxPool2D(pool_size=(3,3), strides=(2,2), padding="valid"))
-    model.add(layers.Conv2D(filters=10, kernel_size=(5,5), strides=(1,1), padding="same", activation = "relu"))
+    model.add(layers.Conv2D(filters=10, kernel_size=(5,5), strides=(1,1), padding="same", activation="relu"))
     model.add(layers.MaxPool2D(pool_size=(3,3), strides=(2,2), padding="valid"))
     #model.add(Conv2D(filters=384, kernel_size=(3,3), strides=(1,1), padding="same", activation = "relu"))
     #model.add(Conv2D(filters=384, kernel_size=(3,3), strides=(1,1), padding="same", activation = "relu"))

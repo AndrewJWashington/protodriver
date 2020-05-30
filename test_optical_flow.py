@@ -2,9 +2,10 @@ from protodriver import utils
 import numpy as np
 from PIL import ImageGrab
 import cv2
+import time
 
 # heavily borrowed from https://docs.opencv.org/3.4/d4/dee/tutorial_optical_flow.html
-
+last_time = time.time()
 screen = np.array(ImageGrab.grab(bbox=(0, 40, 800, 640)))
 last_processed_screen = screen #utils.process_image(screen)
 
@@ -45,27 +46,28 @@ def demo_optical_flow(last_screen, next_screen, last_flow):
 
     print('total flow', total_flow)
 
-    hsv[...,0] = ang*180/np.pi/2
-    hsv[...,2] = cv2.normalize(mag,None,0,255,cv2.NORM_MINMAX)
-    return cv2.cvtColor(hsv,cv2.COLOR_HSV2RGB), flow
+    hsv[..., 0] = ang * 180 / np.pi / 2
+    hsv[..., 2] = cv2.normalize(mag, None, 0, 255, cv2.NORM_MINMAX)
+    return cv2.cvtColor(cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB), cv2.COLOR_RGB2GRAY), flow
+
 
 if __name__ == "__main__":
-    for frames_processed in range(200):
+    while True:
         # grab screen
         screen = np.array(ImageGrab.grab(bbox=(0, 40, 800, 640)))
 
         # process image and display resulting image
-        processed_screen = screen #utils.process_image(screen)
-
+        processed_screen = screen
         image_to_show, last_flow = demo_optical_flow(last_processed_screen, processed_screen, last_flow)
-
         cv2.imshow('window', image_to_show)
-
         last_processed_screen = processed_screen
 
+        # display framerate
+        fps = 1 / (time.time() - last_time)
+        last_time = time.time()
+        print(f"Framerate: {fps:4.4} fps")
 
         # some stuff to get opencv not to crash
         if(cv2.waitKey(25) & 0xFF == ord('q')):
             cv2.destroyAllWindows()
             break
-
