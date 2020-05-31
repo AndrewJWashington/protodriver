@@ -8,28 +8,269 @@ from collections import deque
 
 
 # config
-ROI_VERTICES = [np.array([[10, 500], [10, 250], [399, 200], [401, 200], [800, 250], [800, 500]])]
-                          #bot left  mid left   top left    top right   mid right   bot right
-LINE_COLOR = [255, 255, 255] # white
+                                  # bot left  mid left   top left    top right   mid right   bot right
+ROI_VERTICES =          [np.array([[10, 500], [10, 250], [399, 200], [401, 200], [800, 250], [800, 500]])]
+ROI_VERTICES_BASELINE = [np.array([[10, 350], [10, 300], [300, 225], [500, 225], [800, 300], [800, 350]])]
+LINE_COLOR = [255, 255, 255]  # white
 LINE_WIDTH = 3  # width in pixels for drawing lines on image
 SPEED_LOCATION_ON_SCREEN = (600, 430, 705, 470)
 pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
 
-def _region_of_interest(image, vertices):
+def _region_of_interest_grayscale(image, vertices):
     mask = np.zeros_like(image)
     cv2.fillPoly(mask, vertices, 255)
     return cv2.bitwise_and(image, mask)
 
 
-def _draw_lines(image, lines):
-    """draws lines on image"""
-    if lines is None:
-        return
-    
-    for line in lines:
-        #if line is not None and len(line) == 4:
-        cv2.line(image, (line[0][0], line[0][1]), (line[0][2], line[0][3]), LINE_COLOR, LINE_WIDTH)
+def _region_of_interest_color(image, vertices):
+    mask = np.zeros_like(image)
+    cv2.fillPoly(mask, vertices, (255, 255, 255))
+    return cv2.bitwise_and(image, mask)
+
+
+def alv_vision(image, rgb, thresh):
+    '''
+    Source: https://github.com/stephencwelch/self_driving_cars/blob/master/notebooks/Self-Driving%20Cars%20%5BPart%201-%20The%20ALV%5D.ipynb
+    Apply the basic color-based road segmentation algorithm used in
+    the autonomous land vehicle.
+    Args
+    image: color input image, dimension (n,m,3)
+    rgb: tri-color operation values, dimension (3)
+    thresh: threshold value for road segmentation
+
+    Returns
+    mask: binary mask of the size (n, m), ones indicate road, zeros indicate non-road
+    '''
+    print(image.shape[0], image.shape[1], image.shape[2])
+    dot = np.dot(image.reshape(-1, 3), rgb) > thresh
+    return dot.reshape(image.shape[0], image.shape[1])
+
+
+def process_image_alv(original_image):
+    """
+    Adapted from https://github.com/stephencwelch/self_driving_cars/blob/master/notebooks/Self-Driving%20Cars%20%5BPart%201-%20The%20ALV%5D.ipynb
+    overlays
+    """
+    processed_image = original_image
+    processed_image = cv2.cvtColor(processed_image, cv2.COLOR_BGR2RGB)
+
+    # Run alv vision algorithm
+    # Tunables: rgb (which colors you're trying to separate) and thresh (where to set the boundary)
+    mask = alv_vision(processed_image, rgb=[1, 0, -1], thresh=-50)
+
+    # Display mask on grayscale version of original image
+    im_gray = np.tile(np.expand_dims(cv2.cvtColor(processed_image,
+                                                  cv2.COLOR_RGB2GRAY)
+                                     , axis=2)
+                      , (1, 1, 3))
+
+    # Shade road pixels
+    im_gray[:, :, 1][mask] = 0.5 * im_gray[:, :, 1][mask] + 255 * 0.5
+    im_gray[:, :, 2][mask] = 0.5 * im_gray[:, :, 2][mask] + 255 * 0.5
+
+    return im_gray
+
+
+plot_scanlines = False
+if plot_scanlines:
+    import matplotlib.pyplot as plt
+    fig = plt.gcf()
+    fig.show()
+
+def process_image_for_baseline(original_image):
+    processed_image = original_image
+    processed_image = cv2.cvtColor(processed_image, cv2.COLOR_BGR2RGB)
+    #processed_image = _region_of_interest_color(processed_image, ROI_VERTICES_BASELINE)
+
+    x1 = 200
+    y1 = 260
+    x2 = 10
+    y2 = 400
+    x3 = processed_image.shape[1] - x1
+    y3 = y1
+    y4 = y2
+    x4 = x3 + (x1 - x2)
+
+    x1_final = 200
+    x2_final = x1_final
+    y1_final = 0
+    y2_final = 200
+    x3_final = 2 * x1_final
+    x4_final = x3_final
+    y3_final = y1_final
+    y4_final = y2_final
+    src_points = np.array([[x1, y1],
+                           [x2, y2],
+                           [x3, y3],
+                           [x4, y4]])
+    dst_points = np.array([[x1_final, y1_final],
+                           [x2_final, y2_final],
+                           [x3_final, y3_final],
+                           [x4_final, y4_final]])
+    # Uncomment if you want to see the trapezoid
+    # cv2.line(processed_image, (x1, y1), (x2, y2), LINE_COLOR, LINE_WIDTH)
+    # cv2.line(processed_image, (x2, y2), (x4, y4), LINE_COLOR, LINE_WIDTH)
+    # cv2.line(processed_image, (x3, y3), (x4, y4), LINE_COLOR, LINE_WIDTH)
+    # cv2.line(processed_image, (x1, y1), (x3, y3), LINE_COLOR, LINE_WIDTH)
+    # return processed_image, 10000000, 'left'
+
+    # crop image
+    trapezoid = [np.array([[x1, y1], [x2, y2], [x4, y4], [x3, y3]])]
+    cropped = _region_of_interest_color(processed_image, trapezoid)
+
+    # warp image and convert to grayscale
+    H, _ = cv2.findHomography(src_points, dst_points)
+    warped = cv2.warpPerspective(cropped, H, dsize=(3*(x3_final - x1_final), y2_final - y1_final))
+    warped = cv2.cvtColor(warped, cv2.COLOR_RGB2GRAY)
+
+    if plot_scanlines:
+        plt.clf()
+        scanline, sI_shifted, score = compute_scanline(shifted_image, mask_small, same_padding_columns=5)
+        plt.plot(scanline, linewidth=4.0, color='k')
+        for top_index in sI_shifted[-5:]:
+            plt.plot((top_index, top_index + 1),
+                     (scanline[top_index], scanline[top_index + 1]), c=[0, 1, 1], linewidth=4)
+        fig.canvas.draw()
+
+    shifted_image, mask_small, scanline, sI_shifted, scores, curvature, direction = \
+        find_optimal_unwrapping(warped,
+                                steps=3,
+                                min_radius=100,
+                                max_radius=1e4,
+                                k=100,
+                                x_padding=x1_final)
+
+    print(curvature, direction)
+
+    return shifted_image, curvature, direction
+
+
+def unroll_image(warped_small_gray, direction, R, k, x_padding):
+    '''
+    Unroll warped_small_gray image.
+    direction = left or right
+    R = radius of circle
+    k = distance from top of image to car
+    x_padding = amount of zeros padding on the left and right of warped_small_gray
+    '''
+
+    W = warped_small_gray.shape[1]  # Image width
+    H = warped_small_gray.shape[0]  # Image heigth
+
+    if direction == 'left':
+        h = W / 2 - R
+    elif direction == 'right':
+        h = W / 2 + R
+    else:
+        print('direction not implemented')
+
+    shifts = np.zeros(warped_small_gray.shape[0])
+    for y in range(len(shifts)):
+        if direction == 'right':
+            shifts[y] = np.sqrt(R ** 2 - (y - k) ** 2) - R
+        elif direction == 'left':
+            shifts[y] = R - np.sqrt(R ** 2 - (y - k) ** 2)
+
+    shifts = shifts.round().astype('int')
+
+    shifted_image = np.zeros_like(warped_small_gray)
+    mask_small = np.zeros_like(warped_small_gray)
+
+    for y in range(shifted_image.shape[0]):
+        shifted_image[y, x_padding + shifts[y]:-(x_padding - shifts[y])] = warped_small_gray[y, x_padding:-x_padding]
+        mask_small[y, x_padding + shifts[y]:-(x_padding - shifts[y])] = 255
+
+    return shifted_image, mask_small
+
+
+def compute_scanline(shifted_image, mask_small, same_padding_columns=5):
+    '''
+    Compute scanline and top 5 largest adjacent differences, and compute score
+    same_padding_columns = number of columns to pad on each side of mask.
+    '''
+
+    overhead_nan_image = np.copy(shifted_image).astype('float32')
+    overhead_nan_image[np.logical_not(mask_small)] = np.NaN
+
+    # Add padding
+    for i in range(overhead_nan_image.shape[0]):
+        for j in range(overhead_nan_image.shape[1] - 1):
+            if np.isnan(overhead_nan_image[i, j]) and not np.isnan(overhead_nan_image[i, j + 1]):
+                overhead_nan_image[i, j - same_padding_columns:j + 1] = overhead_nan_image[i, j + 1]
+                break;
+
+        for j in range(overhead_nan_image.shape[1] - 1):
+            if not np.isnan(overhead_nan_image[i, j]) and np.isnan(overhead_nan_image[i, j + 1]):
+                overhead_nan_image[i, j:j + same_padding_columns] = overhead_nan_image[i, j]
+                break;
+
+    scanline = np.sum(overhead_nan_image, axis=0)
+
+    scanline_trimmed = scanline[~np.isnan(scanline)]
+
+    d = np.diff(scanline_trimmed.astype('float'))
+    sI = np.argsort(abs(d))
+    top_5 = d[sI[-5:]]
+    score = sum(abs(top_5))
+
+    sI_shifted = np.where(~np.isnan(scanline))[0][sI]
+
+    return scanline, sI_shifted, score
+
+
+def one_over_mapping(start, end, numpoints):
+    start_inverse = 1.0 / start
+    end_inverse = 1.0 / end
+
+    inverse_points = np.linspace(start_inverse, end_inverse, numpoints)
+    return 1.0 / inverse_points
+
+
+def find_optimal_unwrapping(warped_small_gray,
+                            steps=512,
+                            min_radius=150,
+                            max_radius=1e4,
+                            same_padding_columns=5,
+                            k=100,
+                            x_padding=64):
+    # For the sake of simplicity, assume 1 m = 1 pixel
+
+    # Curvature Hypotheses
+    radii = np.concatenate(
+        (one_over_mapping(min_radius, max_radius, steps), [1e6], one_over_mapping(max_radius, min_radius, steps)))
+    directions = ['right'] * (steps + 1)
+    directions.extend(['left'] * steps)
+
+    scores = []
+
+    for i, R in enumerate(radii):  # (tqdm(radii)):
+        direction = directions[i]
+
+        shifted_image, mask_small = unroll_image(warped_small_gray,
+                                                 direction=direction,
+                                                 R=R,
+                                                 k=k,
+                                                 x_padding=x_padding)
+
+        scanline, sI_shifted, score = compute_scanline(shifted_image, mask_small, same_padding_columns)
+        scores.append(score)
+
+    scores = np.array(scores)
+    winning_index = np.argmax(scores)
+
+    R = radii[winning_index]
+    direction = directions[winning_index]
+
+    shifted_image, mask_small = unroll_image(warped_small_gray,
+                                             direction=direction,
+                                             R=R,
+                                             k=k,
+                                             x_padding=x_padding)
+
+    scanline, sI_shifted, score = compute_scanline(shifted_image, mask_small, same_padding_columns)
+
+    return shifted_image, mask_small, scanline, sI_shifted, scores, R, direction
 
 
 def process_image(original_image):

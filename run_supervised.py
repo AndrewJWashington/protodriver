@@ -4,8 +4,6 @@ import cv2
 import time
 import pyautogui
 import pydirectinput
-import keyboard
-import tensorflow as tf
 from tensorflow import keras
 import os
 from protodriver import utils
